@@ -16,7 +16,7 @@ The home screen lists everything worth analyzing, not just volumes.
 
 ![Home screen: internal disk, Low-Hanging Fruits safe cleanup, Podman virtual machines and Kubernetes contexts](docs/screenshots/home.webp)
 
-- **Low-Hanging Fruits** — a safe one-click cleanup pass over the usual suspects: Trash, `DerivedData`, npm and NuGet caches, and friends. It only ever touches locations that are safe to regenerate.
+- **Low-Hanging Fruits** — a safe one-click cleanup pass over the usual suspects: Trash, `DerivedData`, npm and NuGet caches, stale files in `/tmp` and `$TMPDIR`, and friends. Caches come back on demand; the few rows that don't (Trash, temporary leftovers, orphaned editor state) are marked and never swept up by Select all.
 - **Virtual machines** — Podman machines, scanned from inside the VM.
 - **Kubernetes** — pick a kube context and see every PVC by namespace, provisioned capacity against actual usage, as the same treemap.
 
@@ -49,6 +49,23 @@ The session gets `overview`, `tree`, `top`, `types`, `find`, `aged`, `explain` a
 **If SpaceMatters is open, the session attaches to it** — no second scan, and it sees exactly the tree on your screen. Two more tools appear: `focus` moves the app to the folder being discussed, and `annotate` paints a verdict onto the treemap and the sunburst. Mark a folder `safe`, `review` or `keep` and its whole region takes that colour, with the reason on hover — a colour alone is never the argument, so the sentence behind it is required. Edit › Clear LLM Verdicts undoes the lot. Close the app and the same command falls back to scanning on its own.
 
 The server scans once on the first call (`$HOME` by default, or pass a path) and answers from memory after that. **It cannot delete anything** — no such tool exists. Its output is a plan; the cleanup pass in the app is what acts on it, fenced and journalled. Anything it could not read, it says so rather than quietly under-reporting.
+
+## In a terminal
+
+No window to open — over `ssh`, or just faster than launching an app — the whole app runs in a terminal:
+
+```sh
+/Applications/SpaceMatters.app/Contents/MacOS/SpaceMatters --tui        # the menu
+/Applications/SpaceMatters.app/Contents/MacOS/SpaceMatters --tui ~      # straight to a folder
+```
+
+With no path it opens the same menu the window's home screen shows: mounted disks, any path you type, Low-Hanging Fruits, Podman machines, the container engine, your `kubectl` contexts. Inside a scan it is the outline, filling in live: size, share, file count and last write per folder *and* per file, `s` to re-rank, `t` for file types, `i` for what a row actually is.
+
+`/` finds folders by name across the scan ("19 `node_modules`, 6.7 GiB between them"), `T` ranks the largest, `A` the ones nobody has written to in six months — the questions the MCP tools answer, without an assistant. `c` copies the briefing. `m` opens the action menu, which doubles as the key legend, and `?` shows the rest.
+
+**It deletes too.** `d` moves the selected row to the Trash, `D` deletes it for good, and the Low-Hanging Fruits screen empties the caches you tick — through the very same controllers and fences as the window, with a confirmation that names the size and the full path first, and every deletion recorded in `cleanup.jsonl`. Nothing is removed mid-scan, nothing on a VM or SSH scan, and permanent deletion will not take `⏎` for an answer. A confirmation only takes a key pressed after it is on screen: a paste, or keys typed ahead, cannot answer it.
+
+No curses, no TUI framework: plain terminal sequences, same binary, no extra dependency. Ctrl-Z and `fg` work, the terminal comes back cooked whatever kills the process, and `SPACEMATTERS_TUI_ASCII=1` swaps the box drawing and bars for ASCII if your terminal draws ambiguous-width characters wide.
 
 ## Download
 
